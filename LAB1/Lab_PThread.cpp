@@ -136,7 +136,7 @@ void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid)
 	{
 		for (Y = 0; Y < (int)Grid.size(); Y++)
 		{
-			if (PT_Count % N_THREADS == 0)
+			if ((PT_Count % N_THREADS == 0) && PT_Count != 0)
 				for (int i = 0; i < N_THREADS; i++)
 					pthread_join(Threads[i], NULL);
 
