@@ -5,15 +5,15 @@
 #include <utility>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 4
+#define N_THREADS 8
 #define N_GENERATIONS 2000
 
 //#define DEBUG
 
 #ifdef DEBUG
-	#define P_DEBUG(x) x
+	#define R_DEBUG(x) x;
 #else
-	#define P_DEBUG(x)
+	#define R_DEBUG(x)
 #endif
 
 using namespace std;
@@ -38,6 +38,15 @@ void Grid_Init(vector<vector<bool>> &Grid)
 
 //--------------------------------------------------------------------------
 
+void Vector_Print(vector <pair <int, int>> Nb_List)
+{
+	for (auto i = Nb_List.begin(); i != Nb_List.end(); i++)
+	    cout << (*i).first << ' ' << (*i).second << endl;
+	return;
+}
+
+//--------------------------------------------------------------------------
+
 int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
 {
 	int Nb_Total = 0;													//Qnt. of Neighbours
@@ -48,6 +57,7 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
 			if	(!(i == X && j == Y))
 				Nb_List.push_back(make_pair(i, j));						//Adds the neighbours coordinates to the vector
 
+	R_DEBUG(Vector_Print(Nb_List); cout << endl);
 
 	for (int i = 0; i < 8; i++)											//Analyses each neighbour to check if the coordinates are valid and, if not, fixes them
 	{
@@ -61,6 +71,8 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
 		else if (Nb_List[i].second > (signed int) Grid.size()-1)
 			Nb_List[i].second = 0;
 	}
+
+	R_DEBUG(Vector_Print(Nb_List); cout << endl);
 
 	for (int i = 0; i < 8; i++)											//Verify how many neighbours are alive
 		if (Grid[Nb_List[i].first][Nb_List[i].second] == 1)				//Access Cell Status for each Neighbour 
@@ -136,6 +148,7 @@ void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid)
 	{
 		for (Y = 0; Y < (int)Grid.size(); Y++)
 		{
+			R_DEBUG(cout << "Coord: " << X << " " << Y << endl);
 			if ((PT_Count % N_THREADS == 0) && PT_Count != 0)
 				for (int i = 0; i < N_THREADS; i++)
 					pthread_join(Threads[i], NULL);
@@ -170,14 +183,16 @@ int main()
 
 	Grid_Init(Grid);
 
+	/*
 	cout << "Generation 0: " << Cells_Total(Grid) << endl; 
 
-	for (int i = 0; i < N_GENERATIONS; i++)
+	for (int i = 1; i <= N_GENERATIONS; i++)
 	{
 		Grid_Update(Grid, New_Grid);
 		Grid = New_Grid;
 		cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
 	}
+	*/
 
 	return 0;
 }
