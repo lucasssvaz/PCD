@@ -11,4 +11,4 @@ openmp:
 	g++ -Wall -Wextra -g -o omp.out -O1 Lab_OpenMP.cpp -fopenmp -std=c++17
 
 java:
-	javac -g Lab_Jv.java
+	javac -g Lab_Jv.java -encoding UTF8

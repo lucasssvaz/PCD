@@ -24,8 +24,8 @@ void Grid_Init(vector<vector<bool>> &Grid)
 {
 	srand(SRAND_VALUE);
 
-	for(unsigned int i = 0; i < Grid.size(); i++) 
-		for(unsigned int j = 0; j < Grid[i].size(); j++) 
+	for (unsigned int i = 0; i < Grid.size(); i++) 
+		for (unsigned int j = 0; j < Grid[i].size(); j++) 
 	    	Grid[i][j] = rand() % 2;
 }
 
@@ -36,9 +36,9 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
 	int Nb_Total = 0;													//Qnt. of Neighbours
 	vector <pair <int, int>> Nb_List;									//Vector of Neighbours coordinates for future validation
 
-	for(int i = X-1; i <= X+1; i++) 									//Analyses all squares around current X,Y
-		for(int j = Y-1; j <= Y+1; j++)
-			if	(!(i == X && j == Y))
+	for (int i = X-1; i <= X+1; i++) 									//Analyses all squares around current X,Y
+		for (int j = Y-1; j <= Y+1; j++)
+			if (!(i == X && j == Y))
 				Nb_List.push_back(make_pair(i, j));						//Adds the neighbours coordinates to the vector
 
 
@@ -68,8 +68,8 @@ int Cells_Total(vector<vector<bool>> &Grid)
 {
 	int Cells_Sum = 0;
 
-	for(unsigned int i = 0; i < Grid.size(); i++) 
-		for(unsigned int j = 0; j < Grid[i].size(); j++) 
+	for (unsigned int i = 0; i < Grid.size(); i++) 
+		for (unsigned int j = 0; j < Grid[i].size(); j++) 
 	    	if (Grid[i][j] == 1)
 	    		Cells_Sum++;
 
