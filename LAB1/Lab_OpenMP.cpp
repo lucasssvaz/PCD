@@ -5,7 +5,7 @@
 #include <utility>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 8
+#define N_THREADS 1
 #define N_GENERATIONS 2000
 
 //#define DEBUG
@@ -118,6 +118,7 @@ int main()
 	omp_set_num_threads(N_THREADS);
 
 	int N;
+    float Start_Time = omp_get_wtime();
 
 	cout << "Enter the desired matrix order:" << endl;
 	cin >> N;
@@ -135,6 +136,9 @@ int main()
 		Grid = New_Grid;
 		cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
 	}
+
+    float End_Time = omp_get_wtime();
+    cout << endl << "Time Elapsed: " << End_Time - Start_Time << endl;
 
 	return 0;
 }
