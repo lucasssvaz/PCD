@@ -85,7 +85,7 @@ class GridUpdate implements Runnable {
 
 	public void run() {
         int idx;
-        for(idx = start_idx; idx < end_idx; idx++) {               
+        for(idx = start_idx; idx <= end_idx; idx++) {         
             for(int inner_idx = 0; inner_idx < grid_dimension; inner_idx++) {
                 newGrid[idx][inner_idx] =  CellUpdate(Grid, idx, inner_idx);
             }

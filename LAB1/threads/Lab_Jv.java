@@ -15,7 +15,7 @@ public class Lab_Jv
 {
 	private static int N = 2048;
 	public static boolean[][] Grid = new boolean[N][N];
-	public static boolean[][] newGrid = new boolean[N][N];
+	//public static boolean[][] newGrid = new boolean[N][N];
 
 	public static boolean isEven (long i)
 	{
@@ -55,9 +55,9 @@ public class Lab_Jv
 		//Scanner input = new Scanner(System.in);
 		//int N = input.nextInt();
 
-		int MAX_THREADS = 8;
+		int MAX_THREADS = 4;
 		int N_GENERATIONS = 2000;
-
+		boolean[][] newGrid = new boolean[N][N];
 		int i, aux_i;
 
 		Thread[] thread_array = new Thread[MAX_THREADS];

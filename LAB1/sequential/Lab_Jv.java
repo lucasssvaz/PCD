@@ -98,12 +98,14 @@ public class Lab_Jv
 
 	public static void GridUpdate(boolean[][] Grid, boolean[][] newGrid)
 	{
-		for(int i = 0; i < (int)Grid.length; i++)
+		int i;
+		int j;
+		for(i= 0; i < (int)Grid.length; i++)
 		{
-			for(int j = 0; j < (int)Grid.length; j++)
+			for(j = 0; j < (int)Grid.length; j++)
 			{
 				newGrid[i][j] = CellUpdate(Grid, i, j);
-			}
+			}	
 		}
 	}
 
@@ -113,7 +115,7 @@ public class Lab_Jv
 		//Scanner input = new Scanner(System.in);
 		//int N = input.nextInt();
 
-		int MAX_THREADS = 4;
+		
 		int N_GENERATIONS = 2000;
 		int N = 2048;
 		boolean[][] Grid = new boolean[N][N];
