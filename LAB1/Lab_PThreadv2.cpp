@@ -3,9 +3,12 @@
 #include <pthread.h>
 #include <vector>
 #include <utility>
+#include <stack>
+#include <time.h>
+#include <sys/time.h>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 8
+#define N_THREADS 2
 #define N_GENERATIONS 2000
 
 //#define DEBUG
@@ -20,9 +23,9 @@ using namespace std;
 
 struct PT_Args
 {
-    vector<vector<bool>>* Grid;
-    vector<vector<bool>>* New_Grid;
-    int X, Y;
+    vector <vector<bool>>* Grid;
+    vector <vector<bool>>* New_Grid;
+    stack <pair<int, int>>* Coord_Stack;
 };
 
 //==================================================================================================================================
@@ -99,38 +102,42 @@ int Cells_Total(vector<vector<bool>> &Grid)
 
 void *Cell_Update(void *Args)
 {
-    vector<vector<bool>> *Grid, *New_Grid;
+    vector <vector<bool>> *Grid, *New_Grid;
+    stack <pair<int, int>> *Coord_Stack;
     int X, Y;
 
     Grid = ((struct PT_Args*) Args)->Grid;
     New_Grid = ((struct PT_Args*) Args)->New_Grid;                      //Extracts data from Args Struct
-    X = ((struct PT_Args*) Args)->X;
-    Y = ((struct PT_Args*) Args)->Y;
+    Coord_Stack = ((struct PT_Args*) Args)->Coord_Stack;
 
-    int Nb_Count = Neighbours_Count(*Grid, X, Y);
-
-    if ((*Grid)[X][Y] == 0)
+    while(!(*Coord_Stack).empty())
     {
-        if (Nb_Count == 3)
-        {
-            (*New_Grid)[X][Y] = 1;
-            free(Args);
-            pthread_exit(NULL);
-        }
-    }
-    else
-    {
-        if (Nb_Count < 2 || Nb_Count >= 4)
-        {
-            (*New_Grid)[X][Y] = 0;
-            free(Args);
-            pthread_exit(NULL);
-        }       
+        X = (*Coord_Stack).top().first;
+        Y = (*Coord_Stack).top().second;
+        (*Coord_Stack).pop();
+
+        int Nb_Count = Neighbours_Count(*Grid, X, Y);
+    
+            if ((*Grid)[X][Y] == 0)
+            {
+                if (Nb_Count == 3)
+                {
+                    (*New_Grid)[X][Y] = 1;
+                    continue;
+                }
+            }
+            else
+            {
+                if (Nb_Count < 2 || Nb_Count >= 4)
+                {
+                    (*New_Grid)[X][Y] = 0;
+                    continue;
+                }       
+            }
+    
+        (*New_Grid)[X][Y] = (*Grid)[X][Y];
     }
 
-    (*New_Grid)[X][Y] = (*Grid)[X][Y];
-
-    free(Args);
     pthread_exit(NULL);
 }
 
@@ -141,28 +148,25 @@ void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid)
     pthread_t Threads[N_THREADS];
     int X, Y;
     int PT_Count = 0;
-    struct PT_Args *Args;
-
+    struct PT_Args Args[N_THREADS];
+    stack <pair <int, int>> Coord_Stack[N_THREADS];
 
     for (X = 0; X < (int)Grid.size(); X++)
     {
-        for (Y = 0; Y < (int)Grid.size(); Y++)
+        for (Y = 0; Y < (int)Grid[0].size(); Y++)
         {
             R_DEBUG(cout << "Coord: " << X << " " << Y << endl);
-            if ((PT_Count % N_THREADS == 0) && PT_Count != 0)
-                for (int i = 0; i < N_THREADS; i++)
-                    pthread_join(Threads[i], NULL);
-
-            Args = (struct PT_Args*) malloc(sizeof(struct PT_Args));
-            Args->X = X;
-            Args->Y = Y;
-            Args->Grid = &Grid;
-            Args->New_Grid = &New_Grid;
-
-            pthread_create(&Threads[PT_Count % N_THREADS], NULL, Cell_Update, (void*) Args);
-
+            Coord_Stack[PT_Count % N_THREADS].push(make_pair(X, Y));
             PT_Count++;
         }
+    }
+
+    for (int i = 0; i < N_THREADS; i++)
+    {
+        Args[i].Grid = &Grid;
+        Args[i].New_Grid = &New_Grid;
+        Args[i].Coord_Stack = &(Coord_Stack[i]);
+        pthread_create(&Threads[i], NULL, Cell_Update, (void*) &(Args[i]));
     }
 
     for (int i = 0; i < N_THREADS; i++)
@@ -174,6 +178,9 @@ void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid)
 int main()
 {
     int N;
+    struct timeval Start_Time, End_Time;
+
+    gettimeofday(&Start_Time, NULL);
 
     cout << "Enter the desired matrix order:" << endl;
     cin >> N;
@@ -191,6 +198,9 @@ int main()
         Grid = New_Grid;
         cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
     }
+
+    gettimeofday(&End_Time, NULL);
+    cout << endl << "Time Elapsed: " << (int) (End_Time.tv_sec - Start_Time.tv_sec) << endl;
 
     return 0;
 }
