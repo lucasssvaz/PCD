@@ -1,3 +1,8 @@
+//
+//  Lucas Saavedra Vaz - 120503
+//  Maíra Baptista - 111816
+//
+
 #include <iostream>
 #include <cstdlib>
 #include <pthread.h>
@@ -5,7 +10,7 @@
 #include <utility>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 8
+#define N_THREADS 12
 #define N_GENERATIONS 2000
 
 //#define DEBUG
@@ -47,7 +52,7 @@ void Vector_Print(vector <pair <int, int>> Nb_List)
 
 //--------------------------------------------------------------------------
 
-int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
+int Neighbours_Count(vector<vector<bool>> *Grid, int X, int Y)
 {
     int Nb_Total = 0;                                                   //Qnt. of Neighbours
     vector <pair <int, int>> Nb_List;                                   //Vector of Neighbours coordinates for future validation
@@ -62,20 +67,20 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
     for (int i = 0; i < 8; i++)                                         //Analyses each neighbour to check if the coordinates are valid and, if not, fixes them
     {
         if (Nb_List[i].first < 0)                                       //Validate X coordinate
-            Nb_List[i].first = Grid.size()-1;
-        else if (Nb_List[i].first > (signed int) Grid.size()-1)
+            Nb_List[i].first = (*Grid).size()-1;
+        else if (Nb_List[i].first > (signed int) (*Grid).size()-1)
             Nb_List[i].first = 0;
 
         if (Nb_List[i].second < 0)                                      //Validade Y coordinate
-            Nb_List[i].second = Grid.size()-1;
-        else if (Nb_List[i].second > (signed int) Grid.size()-1)
+            Nb_List[i].second = (*Grid).size()-1;
+        else if (Nb_List[i].second > (signed int) (*Grid).size()-1)
             Nb_List[i].second = 0;
     }
 
     R_DEBUG(Vector_Print(Nb_List); cout << endl);
 
     for (int i = 0; i < 8; i++)                                         //Verify how many neighbours are alive
-        if (Grid[Nb_List[i].first][Nb_List[i].second] == 1)             //Access Cell Status for each Neighbour 
+        if ((*Grid)[Nb_List[i].first][Nb_List[i].second] == 1)          //Access Cell Status for each Neighbour 
             Nb_Total++;
 
     return Nb_Total;
@@ -109,14 +114,26 @@ void *Cell_Update(void *Args)
 
     int Nb_Count = Neighbours_Count(*Grid, X, Y);
 
-    if ((*Grid)[X][Y] == 0)
-    {
-        if (Nb_Count == 3)
-        {
-            (*New_Grid)[X][Y] = 1;
-            free(Args);
-            pthread_exit(NULL);
-        }
+        int Nb_Count = Neighbours_Count(Grid, X, Y);
+    
+            if ((*Grid)[X][Y] == 0)
+            {
+                if (Nb_Count == 3)
+                {
+                    (*New_Grid)[X][Y] = 1;
+                    continue;
+                }
+            }
+            else
+            {
+                if (Nb_Count < 2 || Nb_Count >= 4)
+                {
+                    (*New_Grid)[X][Y] = 0;
+                    continue;
+                }       
+            }
+    
+        (*New_Grid)[X][Y] = (*Grid)[X][Y];
     }
     else
     {

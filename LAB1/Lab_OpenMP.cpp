@@ -1,3 +1,8 @@
+//
+//  Lucas Saavedra Vaz - 120503
+//  Maíra Baptista - 111816
+//
+
 #include <iostream>
 #include <cstdlib>
 #include <omp.h>
