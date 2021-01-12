@@ -3,9 +3,10 @@ public class centralServer {
     public static int request = 0;
     public static int respond = 0;
     public static int finished = 0;
-    public static int COUNT = 20;
+    public static int COUNT = 100;
+    public static int MAX_THREADS = 4;
     
-    //static class Server implements Runnable
+    
     static class Server extends Thread{
         public Server(){
         }
@@ -15,33 +16,18 @@ public class centralServer {
                 System.out.println("Server started");
                 while (finished == 0){
 
-                    /*while(request != 0){
+                    while(request == 0 && finished == 0){
                         //
-                        System.out.println("Server request  " + request);
-                        Thread.sleep(50);
                         Thread.yield();
                     }
-                    respond = request;*/
+                    respond = request;
                     
-                    Thread.yield();
-                    if (request != 0){
-                        
-                        respond = request;
-                    }
-                    
-                    Thread.yield();
-                    if (respond == 0 ){
-                        request = 0;
-                    }
-
-                    /*while(respond == 0){
+                    while(respond != 0){
                         //
-                        System.out.println("Server respond  " + respond);
-                        Thread.sleep(50);
                         Thread.yield();
                     }
 
-                    request = 0;*/
+                    request = 0;
                 }
                 System.out.println("Server stopped");
                 Thread.sleep(50);
@@ -63,18 +49,21 @@ public class centralServer {
         public void run(){
             try {
                 System.out.println("Thread " + thread_id + " started");
-                for (int i = 0; i < COUNT; i++){
-                    while(respond != thread_id){
-                        request = thread_id;
-                        Thread.yield();
-                    }
+                /*while(respond != thread_id){
+                    request = thread_id;
+                    Thread.yield();
+                }*/
 
+                for (int i = 0; i < (COUNT/MAX_THREADS); i++){
                     //critical
-                    shared_sum = shared_sum + 2;
+                    
+                    shared_sum = shared_sum + 1;
+                    System.out.println("Thread " + thread_id + " is summing... Value so far is: " + shared_sum);
 
-                    respond = 0;
+                    
 
                 }
+                respond = 0;
                 Thread.sleep(50);
             }            
             catch (InterruptedException e){
@@ -87,13 +76,14 @@ public class centralServer {
 
     public static void main(String args[]) throws InterruptedException{
 
-        int MAX_THREADS = 4; 
+         
         Thread[] client_thread_array = new Thread[MAX_THREADS];
 
         Thread server = new Server();
-        server.start();
 
-        
+        long start_time = System.currentTimeMillis();
+
+        server.start();        
         
         for (int i = 0; i < MAX_THREADS; i++){
             client_thread_array[i] = new Thread(new Client(i));
@@ -110,7 +100,9 @@ public class centralServer {
             System.out.println("Error ocurred");
         }
         
-
+        long final_time = System.currentTimeMillis() - start_time;
+		System.out.println("Processing time ->" + final_time + "ms");
         System.out.println("Final value: " + shared_sum);
+        
     }
 }
