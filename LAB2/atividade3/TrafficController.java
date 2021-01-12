@@ -1,3 +1,8 @@
+//
+//  Lucas Saavedra Vaz - 120503
+//  Maíra Baptista - 111816
+//
+
 import java.util.concurrent.*;
 
 public class TrafficController {

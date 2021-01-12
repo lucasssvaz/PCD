@@ -10,8 +10,8 @@
 #include <utility>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 12
-#define N_GENERATIONS 2000
+#define N_THREADS 1
+#define N_GENERATIONS 200
 
 //#define DEBUG
 
@@ -124,8 +124,9 @@ int main()
 {
     omp_set_num_threads(N_THREADS);
 
-    int N;
+    int N, Cell_Count;
     float Start_Time = omp_get_wtime();
+    double Total_Time = 0;
 
     cout << "Enter the desired matrix order:" << endl;
     cin >> N;
@@ -145,10 +146,14 @@ int main()
         Grid_Update(Grid, New_Grid);
         Grid = New_Grid;
         Start_Time = omp_get_wtime();
-        cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
+        Cell_Count = Cells_Total(Grid);
         End_Time = omp_get_wtime();
+        cout << "Generation " << i << ": " << Cell_Count << endl;
         cout << "Time Elapsed: " << End_Time - Start_Time << endl << endl;
+        Total_Time += (End_Time - Start_Time);
     }
+
+    cout << endl << "Avg. Sum Time: " << Total_Time/N_GENERATIONS << endl;
 
     return 0;
 }
