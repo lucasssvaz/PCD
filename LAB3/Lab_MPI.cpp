@@ -11,9 +11,12 @@
 #include <mpi.h>
 
 #define SRAND_VALUE 1985
-#define N_GENERATIONS 2000
+#define N_GENERATIONS 100
 
 int Order;
+int Total_Proc;
+int Proc_Rank;
+int Elem_Per_Proc;
 
 //#define DEBUG
 
@@ -27,7 +30,7 @@ using namespace std;
 
 //==================================================================================================================================
 
-void Grid_Init(vector<bool> &Grid)
+void Grid_Init(bool *Grid)
 {
 	srand(SRAND_VALUE);
 
@@ -38,7 +41,7 @@ void Grid_Init(vector<bool> &Grid)
 
 //--------------------------------------------------------------------------
 
-int Neighbours_Count(vector<bool> &Grid, int X, int Y)
+int Neighbours_Count(bool *Grid, int X, int Y)
 {
 	int Nb_Total = 0;                                                   //Qnt. of Neighbours
 	vector <pair <int, int>> Nb_List;                                   //Vector of Neighbours coordinates for future validation
@@ -46,7 +49,7 @@ int Neighbours_Count(vector<bool> &Grid, int X, int Y)
 	for (int i = X-1; i <= X+1; i++)                                    //Analyses all squares around current X,Y
 		for (int j = Y-1; j <= Y+1; j++)
 			if (!(i == X && j == Y))
-				Nb_List.push_back(make_pair(i, j));                     //Adds the neighbours coordinates to the vector
+				Nb_List.push_back(make_pair(i+Proc_Rank*Elem_Per_Proc, j));         //Adds the neighbours coordinates to the vector
 
 
 	for (int i = 0; i < 8; i++)                                         //Analyses each neighbour to check if the coordinates are valid and, if not, fixes them
@@ -71,7 +74,7 @@ int Neighbours_Count(vector<bool> &Grid, int X, int Y)
 
 //--------------------------------------------------------------------------
 
-int Cells_Total(vector<bool> &Grid)
+int Cells_Total(bool *Grid)
 {
 	int Cells_Sum = 0;
 
@@ -85,11 +88,11 @@ int Cells_Total(vector<bool> &Grid)
 
 //--------------------------------------------------------------------------
 
-bool Cell_Update(vector<bool> &Grid, int X, int Y)
+bool Cell_Update(bool *Subset, bool* Grid, int X, int Y)
 {
 	int Nb_Count = Neighbours_Count(Grid, X, Y);
 
-	if (Grid[X*Order+Y] == 0)
+	if (Subset[X*Order+Y] == 0)
 	{
 		if (Nb_Count == 3)
 			return 1;
@@ -100,18 +103,27 @@ bool Cell_Update(vector<bool> &Grid, int X, int Y)
 			return 0;
 	}
 
-	return Grid[X * Order + Y];
+	return Subset[X * Order + Y];
 }
 
 //--------------------------------------------------------------------------
 
-void Grid_Update(vector<bool> &Grid, vector<bool> &New_Grid)
+void Grid_Update(bool *Grid, bool *New_Grid)
 {
 	int X, Y;
 
-	for (X = 0; X < Order; X++)
+	bool *Subset = new bool[Elem_Per_Proc];
+	bool *New_Subset = new bool[Elem_Per_Proc];
+
+	MPI_Scatter(Grid, Elem_Per_Proc, MPI_CXX_BOOL, Subset, Elem_Per_Proc, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+
+	for (X = 0; X < Elem_Per_Proc/Order; X++)
 		for (Y = 0; Y < Order; Y++)
-			New_Grid[X * Order + Y] = Cell_Update(Grid, X, Y);
+			New_Subset[X * Order + Y] = Cell_Update(Subset, Grid, X, Y);
+
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	MPI_Allgather(New_Subset, Elem_Per_Proc, MPI_CXX_BOOL, New_Grid, Order*Order, MPI_CXX_BOOL, MPI_COMM_WORLD);
 
 }
 
@@ -122,35 +134,37 @@ int main()
 
 	MPI_Init(NULL, NULL);
 
-	int Total_Proc;
 	MPI_Comm_size(MPI_COMM_WORLD, &Total_Proc);
-
-	int Proc_Rank;
+	
   	MPI_Comm_rank(MPI_COMM_WORLD, &Proc_Rank);
+
+  	Order = 4;
+
+  	Elem_Per_Proc = Order * Order / Total_Proc;
 
 	struct timeval Start_Time, End_Time;
 
 	gettimeofday(&Start_Time, NULL);
 
-	cout << "Enter the desired matrix order:" << endl;
-	cin >> Order;
-
-	vector<bool> Grid (Order * Order, 0);
-	vector<bool> New_Grid (Order * Order, 0);
+	bool *Grid = new bool[Order * Order];
+	bool *New_Grid = new bool[Order * Order];
 
 	Grid_Init(Grid);
 
-	cout << "Generation 0: " << Cells_Total(Grid) << endl; 
+	if (Proc_Rank == 0)
+		cout << "Generation 0: " << Cells_Total(Grid) << endl; 
 
 	for (int i = 1; i <= N_GENERATIONS; i++)
 	{
 		Grid_Update(Grid, New_Grid);
-		Grid = New_Grid;
-		cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
+		*Grid = *New_Grid;
+		if (Proc_Rank == 0)
+			cout << "Generation " << i << ": " << Cells_Total(Grid) << endl;
 	}
 
 	gettimeofday(&End_Time, NULL);
-	cout << endl << "Time Elapsed: " << (int) (End_Time.tv_sec - Start_Time.tv_sec) << endl;
+	if (Proc_Rank == 0)
+		cout << endl << "Time Elapsed: " << (int) (End_Time.tv_sec - Start_Time.tv_sec) << endl;
 
 	MPI_Finalize();
 

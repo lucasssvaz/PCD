@@ -10,8 +10,8 @@
 #include <utility>
 
 #define SRAND_VALUE 1985
-#define N_THREADS 1
-#define N_GENERATIONS 2000
+#define N_THREADS 8
+#define N_GENERATIONS 100
 
 //#define DEBUG
 
