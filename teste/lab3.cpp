@@ -36,12 +36,22 @@ using namespace std;
 
 //==================================================================================================================================
 
-void Grid_Init(vector<vector<bool>> &Grid)
+void Grid_Init(vector<vector<bool>> &Grid, int Proc_Rank, int Elem_Per_Proc)
 {
+    int rand_wait = Proc_Rank*Elem_Per_Proc*N;
+    int i;
+
     srand(SRAND_VALUE);
 
-    for (unsigned int i = 0; i < Grid.size(); i++) 
-        for (unsigned int j = 0; j < Grid[i].size(); j++) 
+    
+    for(i = 0; i < rand_wait; i++){
+        rand();
+    }
+    
+
+
+    for (unsigned int i = 1; i < Elem_Per_Proc+1; i++) 
+        for (unsigned int j = 1; j < N+1; j++) 
             Grid[i][j] = rand() % 2;
 }
 
@@ -56,9 +66,15 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
         for (int j = Y-1; j <= Y+1; j++)
             if (!(i == X && j == Y))
                 Nb_List.push_back(make_pair(i, j));                     //Adds the neighbours coordinates to the vector
+    /*if (Proc_Rank == 0){
+        for (int j = 0; j < 8; j++)  {
+            cout << Nb_List[j].first << " " << Nb_List[j].second << endl;
+        }
+        cout << "-----" << endl;
+    }/*
 
 
-    for (int i = 0; i < 8; i++)                                         //Analyses each neighbour to check if the coordinates are valid and, if not, fixes them
+    /*for (int i = 0; i < 8; i++)                                         //Analyses each neighbour to check if the coordinates are valid and, if not, fixes them
     {
         if (Nb_List[i].first < 0)                                       //Validate X coordinate
             Nb_List[i].first = Grid.size()-1;
@@ -69,7 +85,7 @@ int Neighbours_Count(vector<vector<bool>> &Grid, int X, int Y)
             Nb_List[i].second = Grid.size()-1;
         else if (Nb_List[i].second > (signed int) Grid.size()-1)
             Nb_List[i].second = 0;
-    }
+    }*/
 
     for (int i = 0; i < 8; i++)                                         //Verify how many neighbours are alive
         if (Grid[Nb_List[i].first][Nb_List[i].second] == 1)             //Access Cell Status for each Neighbour 
@@ -84,8 +100,8 @@ int Cells_Total(vector<vector<bool>> &Grid)
 {
     int Cells_Sum = 0;
 
-    for (unsigned int i = 1; i < Elem_Per_Proc+1; i++) 
-        for (unsigned int j = 1; j < N+1; j++) 
+    for (unsigned int i = 1; i < Elem_Per_Proc; i++) 
+        for (unsigned int j = 1; j < N; j++) 
             if (Grid[i][j] == 1)
                 Cells_Sum++;
 
@@ -114,31 +130,35 @@ bool Cell_Update(vector<vector<bool>> &Grid, int X, int Y)
 
 //--------------------------------------------------------------------------
 
-void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid, MPI_Status status, int anterior, int posterior)
+void Grid_Update(vector<vector<bool>> &Grid, vector<vector<bool>> &New_Grid, MPI_Status status, int anterior, int posterior, int start, int)
 {
-    int X, Y;
+    int X, Y, L, K, I;
 
-    for (int l = 0; l < N; l++){
-        send_one[l] = Grid[1][l+1];
-        send_two[l] = Grid[Elem_Per_Proc][l+1];
+    for (int L = 0; L < N; L++){
+        send_one[L] = Grid[1][L+1];
+        send_two[L] = Grid[Elem_Per_Proc][L+1];
     }
 
-    MPI_Sendrecv (send_one, N, MPI_INTEGER, anterior, 1, receive_two,  N, MPI_INTEGER, posterior, 1, MPI_COMM_WORLD, &status);
+    MPI_Sendrecv(send_one, N, MPI_INTEGER, anterior, 1, receive_two,  N, MPI_INTEGER, posterior, 1, MPI_COMM_WORLD, &status);
 
-    MPI_Sendrecv (send_two, N, MPI_INTEGER, posterior, 1, receive_one, N, MPI_INTEGER, anterior, 1, MPI_COMM_WORLD, &status);   
+    MPI_Sendrecv(send_two, N, MPI_INTEGER, posterior, 1, receive_one, N, MPI_INTEGER, anterior, 1, MPI_COMM_WORLD, &status);   
 
-    for(int j = 0; j < N;j++){
-        Grid[0][j+1] = receive_one[j];
-        Grid[Elem_Per_Proc+1][j+1] = receive_two[j];
+    //completando as colunas das bordas extras (acontece para cada peda;o de matriz)
+    for(int J = 0; J < N;J++){
+        Grid[0][J+1] = receive_one[J];
+        Grid[Elem_Per_Proc+1][J+1] = receive_two[J];
     }
 
-    for(int i = 0; i < Elem_Per_Proc+2; i++){
-        Grid[i][N+1] = Grid[i][1];
-        Grid[i][0] = Grid[i][N];
+    // completando a primeira e ultima posi;'ao das linhas extras
+    for(int I = 0; I < Elem_Per_Proc+2; I++){
+        Grid[I][0] = Grid[I][N];
+        Grid[I][N+1] = Grid[I][1];
+        
     }
+
     MPI_Barrier(MPI_COMM_WORLD);
-    for (X = 0; X < (int)Elem_Per_Proc+1; X++)
-        for (Y = 0; Y < (int)Grid.size()+1; Y++)
+    for (X = 1; X < (int)Elem_Per_Proc+1; X++)
+        for (Y = 1; Y < (int)Grid.size()+1; Y++)
             New_Grid[X][Y] = Cell_Update(Grid, X, Y);
     MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -161,22 +181,31 @@ int main()
     int anterior, posterior;
     int start = 0, end = 0, total_alive = 0;
     struct timeval Start_Time, End_Time;
+    int chunk;
 
 	gettimeofday(&Start_Time, NULL);
-    Order = 64;
-    //Elem_Per_Proc = Order * Order / Total_Proc;
     
     Elem_Per_Proc = N / Total_Proc;
 
-    posterior = ((Proc_Rank + Total_Proc - 1) % Total_Proc);
-    anterior = ((Proc_Rank + 1) % Total_Proc);
+    //cout << "Proc_Rank " << Proc_Rank << endl;
+    start = Proc_Rank * Elem_Per_Proc;
+    //cout << "start value " << start << endl;
+
+    end = start + Elem_Per_Proc;
+    //cout << "end value " << end << endl;
+    
+    anterior = ((Proc_Rank + Total_Proc - 1) % Total_Proc);
+    posterior = ((Proc_Rank + 1) % Total_Proc);
 
     vector<vector<bool>> Grid (Elem_Per_Proc+2, vector<bool> (N+2));
     vector<vector<bool>> New_Grid (Elem_Per_Proc+2, vector<bool> (N+2));
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    //cout << Elem_Per_Proc << " " << N << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
 
-    Grid_Init(Grid);
+
+
+    Grid_Init(Grid, Proc_Rank,Elem_Per_Proc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -186,7 +215,7 @@ int main()
     for (int i = 1; i <= N_GENERATIONS; i++)
     {
         total_alive = 0;
-        Grid_Update(Grid, New_Grid, status, anterior, posterior);
+        Grid_Update(Grid, New_Grid, status, anterior, posterior, start, end);
         Grid = New_Grid;
         total_alive = Cells_Total(Grid);
         if (Proc_Rank == 0)
